@@ -3,8 +3,6 @@ import pandas as pd
 import numpy as np
 import hashlib
 from datetime import datetime, timedelta
-import plotly.express as px
-import plotly.graph_objects as go
 
 # =============================================================================
 # 1. SYSTEM CONFIGURATION & THEMING
@@ -183,10 +181,6 @@ if not st.session_state.authenticated:
 # 4. ADVANCED MULTI-OBJECTIVE AI ALLOCATION ENGINE
 # =============================================================================
 def run_autonomous_allocation(apply=True):
-    """
-    Multi-objective scoring pipeline taking into consideration:
-    Skill match, SLA urgency, geography, cost structure, and current workload.
-    """
     eng_df = st.session_state.engineers.copy()
     task_df = st.session_state.tasks.copy()
 
@@ -206,7 +200,6 @@ def run_autonomous_allocation(apply=True):
                 if eng["Availability"] == "Available" and eng["Workload"] < eng["Max_Capacity"]:
                     skills = [s.strip().lower() for s in eng["Skills"].split(",")]
                     if req_skill in skills:
-                        # Composite optimization algorithm
                         score = (
                             (eng["Performance_Score"] * 40)
                             + ((1.0 - (eng["Workload"] / eng["Max_Capacity"])) * 30)
@@ -302,16 +295,16 @@ if menu == "Dashboard Center":
         st.subheader("🎯 Active Task Execution Queue")
         st.dataframe(st.session_state.tasks, use_container_width=True, height=260, hide_index=True)
 
-    # Streamlit 1.35+ Non-blocking fragment
+    # Streamlit Fragment Chart (Plotly-Free Native Rendering)
     @st.fragment
     def render_capacity_monitor():
         st.subheader("📊 Live Workload Saturation Engine")
         df = st.session_state.engineers.copy()
         df["Saturation (%)"] = (df["Workload"] / df["Max_Capacity"]) * 100
-        fig = px.bar(df, x="Name", y="Saturation (%)", color="Saturation (%)",
-                     color_continuous_scale=["#22C55E", "#FACC15", "#EF4444"], range_color=[0, 100])
-        fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font_color="#E2E8F0", margin=dict(l=10, r=10, t=10, b=10), height=300)
-        st.plotly_chart(fig, use_container_width=True)
+        chart_data = df.set_index("Name")[["Saturation (%)"]]
+        
+        # Native Streamlit Bar Chart (No external plot library required)
+        st.bar_chart(chart_data, color="#38BDF8")
 
     render_capacity_monitor()
 
