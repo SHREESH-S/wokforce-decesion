@@ -2,73 +2,139 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import hashlib
-from datetime import datetime, timedelta
+from datetime import datetime
 
 # =============================================================================
-# 1. SYSTEM CONFIGURATION & THEMING
+# 1. SYSTEM CONFIGURATION & PREMIUM UI/UX THEME
 # =============================================================================
 st.set_page_config(
-    page_title="Enterprise Workforce AI | Autonomous Allocation & Intelligence",
+    page_title="Enterprise Workforce AI | Operational Intelligence",
     page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Deep Cyberpunk / Glassmorphic UI CSS
+# High-Contrast Executive SaaS Theme
 st.markdown("""
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
 <style>
-    html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
-    .main { background-color: #070B14; }
-    .stApp { color: #E2E8F0; }
-
-    section[data-testid="stSidebar"] {
-        background-color: #0B132B;
-        border-right: 1px solid rgba(255, 255, 255, 0.05);
+    /* Global Typography & Background */
+    html, body, [class*="css"] {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+        color: #F8FAFC !important;
     }
-
-    .stCard {
-        background: rgba(15, 23, 42, 0.65);
-        border-radius: 12px;
-        padding: 18px 20px;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        backdrop-filter: blur(16px);
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-        margin-bottom: 12px;
-    }
-    .stCard h4 { 
-        margin: 0 0 6px 0; 
-        font-size: 0.75rem; 
-        font-weight: 700; 
-        letter-spacing: .05em;
-        text-transform: uppercase; 
-        color: #64748B;
-    }
-    .metric-val { font-size: 2.2rem; font-weight: 800; color: #38BDF8; line-height: 1; }
-    .metric-sub { font-size: 0.75rem; color: #94A3B8; margin-top: 6px; }
-
-    .badge { display:inline-block; padding: 2px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 700; }
-    .badge-critical { background: rgba(239,68,68,0.2); color:#F87171; border:1px solid rgba(239,68,68,0.4);}
-    .badge-high { background: rgba(249,115,22,0.2); color:#FB923C; border:1px solid rgba(249,115,22,0.4);}
-    .badge-ok { background: rgba(56,189,248,0.2); color:#38BDF8; border:1px solid rgba(56,189,248,0.4);}
-
-    .stButton>button {
-        background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
-        color: #FFFFFF; border: none; border-radius: 8px; font-weight: 600;
-        transition: all 0.2s ease; padding: 0.5rem 1rem;
-    }
-    .stButton>button:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(37,99,235,0.4); }
-
-    .app-header { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; }
-    .app-sub { color: #64748B; font-size: 0.85rem; margin-bottom: 1rem; }
     
-    hr { border-color: rgba(255,255,255,0.06); }
+    .stApp {
+        background: linear-gradient(180deg, #0B0F19 0%, #0F172A 100%);
+    }
+
+    /* Sidebar Styling */
+    section[data-testid="stSidebar"] {
+        background-color: #0F172A !important;
+        border-right: 1px solid #1E293B !important;
+    }
+
+    /* Premium Metric Card */
+    .metric-card {
+        background: #1E293B;
+        border: 1px solid #334155;
+        border-radius: 12px;
+        padding: 20px 24px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+        margin-bottom: 16px;
+        transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .metric-card:hover {
+        border-color: #38BDF8;
+        transform: translateY(-2px);
+    }
+    .metric-title {
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #94A3B8;
+        margin-bottom: 8px;
+    }
+    .metric-value {
+        font-size: 2.4rem;
+        font-weight: 800;
+        color: #38BDF8;
+        line-height: 1;
+    }
+
+    /* Header Styling */
+    .page-header {
+        font-size: 1.85rem;
+        font-weight: 800;
+        color: #F8FAFC;
+        letter-spacing: -0.02em;
+        margin-bottom: 4px;
+    }
+    .page-sub {
+        font-size: 0.95rem;
+        color: #94A3B8;
+        margin-bottom: 24px;
+    }
+
+    /* Buttons */
+    .stButton > button {
+        background: #2563EB !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+        font-size: 0.95rem !important;
+        padding: 10px 20px !important;
+        transition: all 0.2s ease-in-out !important;
+        box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3) !important;
+    }
+    .stButton > button:hover {
+        background: #1D4ED8 !important;
+        box-shadow: 0 4px 14px rgba(37, 99, 235, 0.5) !important;
+        transform: translateY(-1px);
+    }
+
+    /* Login Form Card Container */
+    .login-container {
+        background: #1E293B;
+        border: 1px solid #334155;
+        border-radius: 16px;
+        padding: 36px;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Status Badges */
+    .badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+    }
+    .badge-admin { background: rgba(56, 189, 248, 0.15); color: #38BDF8; border: 1px solid rgba(56, 189, 248, 0.3); }
+
+    /* Custom Form Field Inputs */
+    .stTextInput input {
+        background-color: #0F172A !important;
+        color: #F8FAFC !important;
+        border: 1px solid #334155 !important;
+        border-radius: 8px !important;
+        padding: 10px 14px !important;
+    }
+    .stTextInput input:focus {
+        border-color: #38BDF8 !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
 
 # =============================================================================
-# 2. STATE INITIALIZATION & TAMPER-EVIDENT AUDIT ENGINE
+# 2. STATE INITIALIZATION & AUDIT ENGINE
 # =============================================================================
 @st.cache_data(ttl=3600, show_spinner=False)
 def load_baseline_data():
@@ -97,7 +163,6 @@ if "audit_logs" not in st.session_state:
     st.session_state.audit_logs = []
 
 def log_event(event_type, details):
-    """Appends an immutable event into a SHA-256 tamper-evident hash chain."""
     prev_hash = st.session_state.audit_logs[-1]["Checksum"] if st.session_state.audit_logs else "GENESIS"
     timestamp = datetime.now().isoformat()
     raw_payload = f"{prev_hash}|{event_type}|{details}|{timestamp}"
@@ -150,15 +215,20 @@ if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
 if not st.session_state.authenticated:
-    st.title("🔒 Enterprise Workforce Gateway")
-    c1, c2, c3 = st.columns([1, 2, 1])
+    st.write(" ")
+    st.write(" ")
+    c1, c2, c3 = st.columns([1, 1.8, 1])
     with c2:
-        st.markdown('<div class="stCard">', unsafe_allow_html=True)
+        st.markdown('''
+            <div class="login-container">
+                <h2 style="margin-top:0; font-weight:800; color:#F8FAFC; text-align:center;">Enterprise Workforce OS</h2>
+                <p style="color:#94A3B8; font-size:0.9rem; text-align:center; margin-bottom:24px;">Sign in with your organizational credentials</p>
+        ''', unsafe_allow_html=True)
+        
         with st.form("login_form"):
-            st.subheader("Secure System Access")
-            user_input = st.text_input("Username").strip().lower()
-            pass_input = st.text_input("Password", type="password")
-            submitted = st.form_submit_button("Authenticate System Token", use_container_width=True)
+            user_input = st.text_input("Username", placeholder="e.g. admin").strip().lower()
+            pass_input = st.text_input("Password", type="password", placeholder="••••••••")
+            submitted = st.form_submit_button("Sign In to Platform", use_container_width=True)
 
             if submitted:
                 record = USER_ROLES.get(user_input)
@@ -167,13 +237,13 @@ if not st.session_state.authenticated:
                     st.session_state.username = user_input
                     st.session_state.user_role = record["role"]
                     st.session_state.permissions = record["permissions"]
-                    log_event("AUTH_SUCCESS", f"User '{user_input}' initialized session.")
+                    log_event("AUTH_SUCCESS", f"User '{user_input}' signed in.")
                     st.rerun()
                 else:
-                    log_event("AUTH_FAILURE", f"Failed attempt for user '{user_input}'.")
-                    st.error("Invalid credentials.")
+                    log_event("AUTH_FAILURE", f"Failed login for '{user_input}'.")
+                    st.error("Invalid username or password.")
         st.markdown('</div>', unsafe_allow_html=True)
-        st.caption("Default Profiles — admin/admin123 · manager/manager123 · engineer/eng123")
+        st.caption("<div style='text-align:center; margin-top:16px; color:#64748B;'>Default accounts: <b>admin</b>/admin123 · <b>manager</b>/manager123 · <b>engineer</b>/eng123</div>", unsafe_allow_html=True)
     st.stop()
 
 
@@ -244,8 +314,6 @@ def process_natural_query(query):
             if d > avail:
                 gaps.append(f"**{s}** (Deficit: {d - avail})")
         return f"⚠️ **Skill Deficit Detected:** {', '.join(gaps)}" if gaps else "✅ **Skill Coverage Clear:** No immediate staffing deficits identified."
-    if "cost" in q or "saving" in q:
-        return "💰 **Cost Analysis:** Running allocation updates indicates optimum matching preserves ~$420/hr relative to contractor escalation."
     
     return f"Processed query against system state: Currently tracking **{len(st.session_state.engineers)}** resources and **{len(st.session_state.tasks)}** tasks."
 
@@ -253,16 +321,16 @@ def process_natural_query(query):
 # =============================================================================
 # 5. SIDEBAR NAVIGATION
 # =============================================================================
-st.sidebar.markdown("### ⚡ Workforce OS")
-st.sidebar.caption(f"Authenticated: **{st.session_state.username}**")
-st.sidebar.markdown(f"<span class='badge badge-ok'>{st.session_state.user_role}</span>", unsafe_allow_html=True)
-st.sidebar.markdown("---")
+st.sidebar.markdown("<h3 style='margin-bottom:2px; font-weight:800; color:#F8FAFC;'>⚡ Workforce OS</h3>", unsafe_allow_html=True)
+st.sidebar.markdown(f"<div style='margin-bottom:12px; color:#94A3B8; font-size:0.85rem;'>User: <b style='color:#F8FAFC;'>{st.session_state.username}</b></div>", unsafe_allow_html=True)
+st.sidebar.markdown(f"<span class='badge badge-admin'>{st.session_state.user_role}</span>", unsafe_allow_html=True)
+st.sidebar.markdown("<hr style='border-color:#334155; margin:16px 0;'>", unsafe_allow_html=True)
 
-menu = st.sidebar.radio("Command Modules", [m for m in ["Dashboard Center", "AI Natural Query Bot", "AI Insights", "Dynamic Scenario Engine", "Security & Audit"] if m in st.session_state.permissions])
+menu = st.sidebar.radio("Main Menu", [m for m in ["Dashboard Center", "AI Natural Query Bot", "AI Insights", "Dynamic Scenario Engine", "Security & Audit"] if m in st.session_state.permissions])
 
-st.sidebar.markdown("---")
-if st.sidebar.button("Terminated Session (Logout)", use_container_width=True):
-    log_event("LOGOUT", f"User '{st.session_state.username}' logged out.")
+st.sidebar.markdown("<hr style='border-color:#334155; margin:24px 0;'>", unsafe_allow_html=True)
+if st.sidebar.button("Sign Out", use_container_width=True):
+    log_event("LOGOUT", f"User '{st.session_state.username}' signed out.")
     st.session_state.authenticated = False
     st.rerun()
 
@@ -271,53 +339,48 @@ if st.sidebar.button("Terminated Session (Logout)", use_container_width=True):
 # MODULE 1: DASHBOARD CENTER
 # =============================================================================
 if menu == "Dashboard Center":
-    st.markdown('<div class="app-header">🚀 Mission Operations Center</div>', unsafe_allow_html=True)
-    st.markdown('<div class="app-sub">Real-time resource capacity, execution pipeline, and allocation health.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="page-header">Mission Operations Center</div>', unsafe_allow_html=True)
+    st.markdown('<div class="page-sub">Real-time resource capacity, execution pipeline, and allocation health.</div>', unsafe_allow_html=True)
 
     c1, c2, c3, c4 = st.columns(4)
     with c1:
-        st.markdown(f'<div class="stCard"><h4>Workforce Pool</h4><div class="metric-val">{len(st.session_state.engineers)}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card"><div class="metric-title">Workforce Pool</div><div class="metric-value">{len(st.session_state.engineers)}</div></div>', unsafe_allow_html=True)
     with c2:
         active = len(st.session_state.engineers[st.session_state.engineers["Availability"] == "Available"])
-        st.markdown(f'<div class="stCard"><h4>Active Ready</h4><div class="metric-val">{active}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card"><div class="metric-title">Active Engineers</div><div class="metric-value">{active}</div></div>', unsafe_allow_html=True)
     with c3:
         pending = len(st.session_state.tasks[st.session_state.tasks["Assigned_To"].astype(str).str.contains("Unassigned")])
-        st.markdown(f'<div class="stCard"><h4>Task Queue</h4><div class="metric-val">{pending}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card"><div class="metric-title">Unassigned Tasks</div><div class="metric-value">{pending}</div></div>', unsafe_allow_html=True)
     with c4:
         avg_perf = int(st.session_state.engineers["Performance_Score"].mean() * 100)
-        st.markdown(f'<div class="stCard"><h4>System Health</h4><div class="metric-val">{avg_perf}%</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card"><div class="metric-title">System Health</div><div class="metric-value">{avg_perf}%</div></div>', unsafe_allow_html=True)
 
+    st.write(" ")
     c1, c2 = st.columns(2)
     with c1:
         st.subheader("👥 Engineers Availability & Capacity")
-        st.dataframe(st.session_state.engineers, use_container_width=True, height=260, hide_index=True)
+        st.dataframe(st.session_state.engineers, use_container_width=True, height=280, hide_index=True)
     with c2:
-        st.subheader("🎯 Active Task Execution Queue")
-        st.dataframe(st.session_state.tasks, use_container_width=True, height=260, hide_index=True)
+        st.subheader("🎯 Task Execution Queue")
+        st.dataframe(st.session_state.tasks, use_container_width=True, height=280, hide_index=True)
 
-    # Streamlit Fragment Chart (Plotly-Free Native Rendering)
-    @st.fragment
-    def render_capacity_monitor():
-        st.subheader("📊 Live Workload Saturation Engine")
-        df = st.session_state.engineers.copy()
-        df["Saturation (%)"] = (df["Workload"] / df["Max_Capacity"]) * 100
-        chart_data = df.set_index("Name")[["Saturation (%)"]]
-        
-        # Native Streamlit Bar Chart (No external plot library required)
-        st.bar_chart(chart_data, color="#38BDF8")
-
-    render_capacity_monitor()
+    st.write(" ")
+    st.subheader("📊 Live Workload Saturation")
+    df = st.session_state.engineers.copy()
+    df["Saturation (%)"] = (df["Workload"] / df["Max_Capacity"]) * 100
+    chart_data = df.set_index("Name")[["Saturation (%)"]]
+    st.bar_chart(chart_data, color="#38BDF8")
 
 
 # =============================================================================
 # MODULE 2: AI NATURAL QUERY BOT
 # =============================================================================
 elif menu == "AI Natural Query Bot":
-    st.markdown('<div class="app-header">🤖 AI Operations Co-Pilot</div>', unsafe_allow_html=True)
-    st.markdown('<div class="app-sub">Execute natural language decisions across system state and operational workloads.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="page-header">AI Operations Co-Pilot</div>', unsafe_allow_html=True)
+    st.markdown('<div class="page-sub">Ask questions and run allocation commands using natural language.</div>', unsafe_allow_html=True)
 
     if "chat_history" not in st.session_state:
-        st.session_state.chat_history = [{"role": "assistant", "content": "System Online. Query allocation models, trigger re-assignments, or analyze capacity gaps."}]
+        st.session_state.chat_history = [{"role": "assistant", "content": "Hello! I am your AI assistant. Type **'Allocate unassigned tasks'** or **'Check skill gaps'** to get started."}]
 
     for msg in st.session_state.chat_history:
         st.chat_message(msg["role"]).write(msg["content"])
@@ -335,11 +398,11 @@ elif menu == "AI Natural Query Bot":
 # MODULE 3: AI INSIGHTS
 # =============================================================================
 elif menu == "AI Insights":
-    st.markdown('<div class="app-header">🧠 Predictive Insights & Analytics</div>', unsafe_allow_html=True)
-    
+    st.markdown('<div class="page-header">Predictive Insights & Analytics</div>', unsafe_allow_html=True)
+    st.markdown('<div class="page-sub">Skill demand forecasting and automated workload projections.</div>', unsafe_allow_html=True)
+
     t1, t2 = st.tabs(["📉 Skill Gap Matrix", "📈 Utilization Forecast"])
     with t1:
-        st.caption("Dynamic analysis comparing unassigned task demand against active resource supply.")
         tasks = st.session_state.tasks
         engs = st.session_state.engineers
         unassigned = tasks[tasks["Assigned_To"].astype(str).str.contains("Unassigned")]
@@ -352,7 +415,6 @@ elif menu == "AI Insights":
         st.dataframe(pd.DataFrame(matrix), use_container_width=True, hide_index=True)
 
     with t2:
-        st.caption("Forecasted workload distribution if pending queue is completely processed.")
         preview_df = run_autonomous_allocation(apply=False)
         if not preview_df.empty:
             st.dataframe(preview_df, use_container_width=True, hide_index=True)
@@ -364,14 +426,15 @@ elif menu == "AI Insights":
 # MODULE 4: DYNAMIC SCENARIO ENGINE
 # =============================================================================
 elif menu == "Dynamic Scenario Engine":
-    st.markdown('<div class="app-header">🔮 Operational Scenario Simulator</div>', unsafe_allow_html=True)
-    
+    st.markdown('<div class="page-header">Operational Scenario Simulator</div>', unsafe_allow_html=True)
+    st.markdown('<div class="page-sub">Simulate workload spikes and outages before making staffing changes.</div>', unsafe_allow_html=True)
+
     c1, c2 = st.columns(2)
     with c1:
-        st.subheader("⚙️ Parameter Simulation")
-        spike = st.slider("Simulate Queue Spike (%)", 0, 200, 50)
-        absent = st.multiselect("Simulate Sudden Outage", st.session_state.engineers["Name"].tolist())
-        run = st.button("Simulate Operational Load", type="primary")
+        st.subheader("⚙️ Scenario Parameters")
+        spike = st.slider("Simulate Queue Load Spike (%)", 0, 200, 50)
+        absent = st.multiselect("Simulate Outages (Select Engineers)", st.session_state.engineers["Name"].tolist())
+        run = st.button("Run Load Simulation", type="primary")
 
     if run:
         with c2:
@@ -384,24 +447,25 @@ elif menu == "Dynamic Scenario Engine":
             projected = int(len(st.session_state.tasks) * (1 + spike/100))
             
             st.metric("Net Available Capacity", cap)
-            st.metric("Simulated Task Queue Load", projected)
+            st.metric("Simulated Queue Task Load", projected)
             if projected > cap:
-                st.error(f"⚠️ **Capacity Breach:** Load exceeds headroom by {projected - cap} task slots!")
+                st.error(f"⚠️ **Capacity Breach:** Projected load exceeds available headroom by {projected - cap} task slots!")
             else:
-                st.success("✅ **Stable:** Workforce capacity sufficient to absorb scenario load.")
+                st.success("✅ **Stable:** System capacity can safely absorb the simulated load.")
 
 
 # =============================================================================
 # MODULE 5: SECURITY & AUDIT LOGS
 # =============================================================================
 elif menu == "Security & Audit":
-    st.markdown('<div class="app-header">🛡️ Cryptographic Security Vault</div>', unsafe_allow_html=True)
-    
+    st.markdown('<div class="page-header">Cryptographic Security Vault</div>', unsafe_allow_html=True)
+    st.markdown('<div class="page-sub">SHA-256 tamper-evident log verification.</div>', unsafe_allow_html=True)
+
     valid, breach = verify_log_integrity()
     if valid:
-        st.success("🔒 **Audit Chain Intact**: Hash chain integrity confirmed (0 modifications detected).")
+        st.success("🔒 **Audit Chain Intact:** All system log hashes verified successfully.")
     else:
-        st.error(f"🚨 **Integrity Alert**: System hash mismatch detected at block entry #{breach}!")
+        st.error(f"🚨 **Integrity Alert:** Modification detected at block entry #{breach}!")
 
     if st.session_state.audit_logs:
         df_logs = pd.DataFrame(st.session_state.audit_logs).drop(columns=["_raw_ts"])
