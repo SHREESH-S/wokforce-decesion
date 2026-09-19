@@ -17,12 +17,12 @@ st.set_page_config(
 )
 
 # =============================================================================
-# 2. GLOBAL STYLING — professional dark UI (loaded once, no inline CSS re-injection)
+# 2. GLOBAL STYLING — Professional Dark UI
 # =============================================================================
 st.markdown("""
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-    html, body, [class*="css"]  { font-family: 'Inter', sans-serif; }
+    html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
     .main { background-color: #0B1120; }
     .stApp { color: #F1F5F9; }
 
@@ -79,7 +79,7 @@ def urgency_badge(urgency):
 
 
 # =============================================================================
-# 3. DATA LAYER — cached so cold start stays fast
+# 3. DATA LAYER
 # =============================================================================
 @st.cache_data(ttl=3600, show_spinner=False)
 def load_initial_workforce_data():
@@ -110,7 +110,7 @@ if "audit_logs" not in st.session_state:
 
 
 def log_event(event_type, details):
-    """Append a tamper-evident, hash-chained audit entry (each entry commits to the previous one)."""
+    """Append a tamper-evident, hash-chained audit entry."""
     prev_checksum = st.session_state.audit_logs[-1]["Checksum"] if st.session_state.audit_logs else "GENESIS"
     ts_raw = datetime.now().isoformat()
     payload = f"{prev_checksum}|{event_type}|{details}|{ts_raw}"
@@ -126,7 +126,7 @@ def log_event(event_type, details):
 
 
 def verify_audit_chain():
-    """Recompute the hash chain to confirm no log entry has been altered or removed."""
+    """Recompute the hash chain to confirm no log entry has been altered."""
     logs = st.session_state.audit_logs
     prev = "GENESIS"
     for i, row in enumerate(logs):
@@ -141,7 +141,7 @@ def verify_audit_chain():
 
 
 # =============================================================================
-# 4. SECURITY GATEWAY — hashed credentials, lockout, RBAC, session expiry
+# 4. SECURITY GATEWAY
 # =============================================================================
 def hash_pw(password, salt):
     return hashlib.sha256(f"{salt}:{password}".encode()).hexdigest()
@@ -173,7 +173,6 @@ for key, default in [("authenticated", False), ("login_attempts", {})]:
     if key not in st.session_state:
         st.session_state[key] = default
 
-# --- Session expiry check (runs before rendering anything else) ---
 if st.session_state.authenticated:
     elapsed = datetime.now() - st.session_state.get("login_time", datetime.now())
     if elapsed > timedelta(minutes=SESSION_TIMEOUT_MINUTES):
@@ -228,7 +227,6 @@ if not st.session_state.authenticated:
 # 5. AI ENGINES
 # =============================================================================
 def run_ai_matchmaking(apply=True):
-    """Skill + geography + performance + cost aware assignment. apply=False returns a dry-run preview."""
     eng_df = st.session_state.engineers.copy()
     task_df = st.session_state.tasks.copy()
 
@@ -251,7 +249,7 @@ def run_ai_matchmaking(apply=True):
                             (eng["Performance_Score"] * 40)
                             + ((1 - (eng["Workload"] / eng["Max_Capacity"])) * 30)
                             + (30 if eng["Location"] == task["Location"] else 0)
-                            - (eng["Hourly_Rate"] / 10.0)  # mild cost penalty as a tie-breaker
+                            - (eng["Hourly_Rate"] / 10.0)
                         )
                         candidates.append((score, e_idx, eng["Name"], eng["ID"], eng["Hourly_Rate"]))
 
@@ -332,7 +330,6 @@ def generate_cost_optimization_suggestions(min_savings=5):
 
 
 def forecast_utilization():
-    """Projects utilization if every currently pending task were routed right now (dry run, no mutation)."""
     preview = run_ai_matchmaking(apply=False)
     eng = st.session_state.engineers.copy()
     if not preview.empty:
@@ -415,7 +412,7 @@ def process_query(user_prompt):
 
 
 # =============================================================================
-# 7. SIDEBAR NAVIGATION (RBAC-filtered)
+# 7. SIDEBAR NAVIGATION
 # =============================================================================
 st.sidebar.markdown("### ⚡ Workforce OS")
 st.sidebar.caption(f"Signed in as **{st.session_state.username}**")
@@ -473,7 +470,7 @@ if menu == "Dashboard Center":
         fig = px.bar(chart_data, x="Name", y="Utilization %", color="Utilization %",
                      color_continuous_scale=["#22C55E", "#FACC15", "#EF4444"], range_color=[0, 100])
         fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                           font_color="#F1F5F9", margin=dict(l=10, r=10, t=10, b=10), height=320)
+                          font_color="#F1F5F9", margin=dict(l=10, r=10, t=10, b=10), height=320)
         st.plotly_chart(fig, use_container_width=True)
 
     render_capacity_chart()
@@ -532,7 +529,7 @@ elif menu == "AI Natural Query Bot":
         st.chat_message("assistant").write(response)
 
 # =============================================================================
-# TAB: AI INSIGHTS (skill gaps, anomalies, cost optimization, forecasting)
+# TAB: AI INSIGHTS
 # =============================================================================
 elif menu == "AI Insights":
     st.markdown('<p class="app-title">🧠 AI Insights & Recommendations</p>', unsafe_allow_html=True)
@@ -560,7 +557,7 @@ elif menu == "AI Insights":
             st.dataframe(sla_risk[["Task_ID", "Task_Name", "Urgency", "SLA_Hours"]], use_container_width=True, hide_index=True)
 
     with tab3:
-        st.caption("Suggests cheaper, equally-qualified engineers for currently assigned tasks (no auto-apply).")
+        st.caption("Suggests cheaper, equally-qualified engineers for currently assigned tasks.")
         sugg = generate_cost_optimization_suggestions()
         if sugg.empty:
             st.info("No cost-saving reassignments found above the savings threshold.")
@@ -569,84 +566,48 @@ elif menu == "AI Insights":
             st.caption(f"Total potential savings: ${sugg['Est_Savings_Per_Hr'].sum():.2f}/hr across {len(sugg)} task(s).")
 
     with tab4:
-        st.caption("Dry-run projection of utilization if all pending tasks were routed right now — nothing is applied.")
+        st.caption("Dry-run projection of utilization if all pending tasks were routed right now.")
         proj, preview = forecast_utilization()
         fig = go.Figure()
         fig.add_trace(go.Bar(name="Current %", x=proj["Name"], y=proj["Current_Util_%"], marker_color="#38BDF8"))
         fig.add_trace(go.Bar(name="Projected %", x=proj["Name"], y=proj["Projected_Util_%"], marker_color="#F97316"))
         fig.update_layout(barmode="group", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                           font_color="#F1F5F9", margin=dict(l=10, r=10, t=10, b=10), height=340)
+                          font_color="#F1F5F9", margin=dict(l=10, r=10, t=10, b=10), height=340)
         st.plotly_chart(fig, use_container_width=True)
         if not preview.empty:
             st.dataframe(preview, use_container_width=True, hide_index=True)
 
 # =============================================================================
-# TAB: DYNAMIC SCENARIO SIMULATOR
+# TAB: DYNAMIC SCENARIO ENGINE
 # =============================================================================
 elif menu == "Dynamic Scenario Engine":
-    st.markdown('<p class="app-title">⚡ Dynamic Scenario & Disruption Simulator</p>', unsafe_allow_html=True)
-    st.markdown('<p class="app-sub">Simulate outages or inject high-priority tasks and watch AI reallocation cascade.</p>', unsafe_allow_html=True)
-
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown('<div class="stCard">', unsafe_allow_html=True)
-        st.markdown("#### 🚨 Emergency Outage Simulation")
-        selected_eng = st.selectbox("Select Resource", st.session_state.engineers["Name"].tolist())
-        new_status = st.selectbox("Update Status", ["On Leave", "Available", "Busy"])
-        if st.button("Apply Status Disruption", use_container_width=True):
-            st.session_state.engineers.loc[st.session_state.engineers["Name"] == selected_eng, "Availability"] = new_status
-            log_event("DISRUPTION_SIMULATED", f"Changed status of {selected_eng} to {new_status} (by {st.session_state.username}).")
-            st.warning(f"Updated {selected_eng} to {new_status}.")
-            n = run_ai_matchmaking(apply=True)
-            st.success(f"Cascade reallocation completed — {n} task(s) re-routed.")
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    with col2:
-        st.markdown('<div class="stCard">', unsafe_allow_html=True)
-        st.markdown("#### ⚡ Fast-Track Task Injection")
-        with st.form("inject_task_form"):
-            t_name = st.text_input("Task Title", "Zero-Day Security Patch")
-            t_skill = st.selectbox("Required Skill", ["Security", "Python", "Cloud", "DevOps", "Database", "Network"])
-            t_urgency = st.selectbox("Urgency", ["Critical", "High", "Medium", "Low"])
-            t_sla = st.number_input("SLA Commitment (Hours)", min_value=1, max_value=72, value=2)
-            if st.form_submit_button("Inject Task & Run AI", use_container_width=True):
-                t_id = f"T{100 + len(st.session_state.tasks) + 1}"
-                new_row = pd.DataFrame([{"Task_ID": t_id, "Task_Name": t_name, "Required_Skill": t_skill,
-                                          "Urgency": t_urgency, "SLA_Hours": t_sla, "Location": "New York",
-                                          "Assigned_To": "Unassigned", "Est_Cost": t_sla * 100}])
-                st.session_state.tasks = pd.concat([st.session_state.tasks, new_row], ignore_index=True)
-                log_event("TASK_INJECTED", f"Injected emergency task {t_id} (by {st.session_state.username}).")
-                n = run_ai_matchmaking(apply=True)
-                st.success(f"Task {t_id} injected — {n} task(s) routed by AI.")
-        st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('<p class="app-title">⚡ Dynamic Scenario Engine</p>', unsafe_allow_html=True)
+    st.markdown('<p class="app-sub">Simulate operational scenarios before making actual changes.</p>', unsafe_allow_html=True)
+    
+    st.info("Run dry-run scenarios using the options below to observe how workload allocations adapt in real-time.")
+    
+    if st.button("Simulate Auto-Match Scenario", use_container_width=True):
+        preview_df = run_ai_matchmaking(apply=False)
+        if not preview_df.empty:
+            st.markdown("**Simulated Task Allocations:**")
+            st.dataframe(preview_df, use_container_width=True, hide_index=True)
+        else:
+            st.success("No unassigned tasks require simulated routing.")
 
 # =============================================================================
-# TAB: SECURITY & AUDIT TRAIL
+# TAB: SECURITY & AUDIT
 # =============================================================================
 elif menu == "Security & Audit":
-    st.markdown('<p class="app-title">🛡️ Enterprise Security & Audit Compliance</p>', unsafe_allow_html=True)
-    st.markdown('<p class="app-sub">Hash-chained, tamper-evident log for compliance tracking and governance.</p>', unsafe_allow_html=True)
-
-    c1, c2 = st.columns([1, 3])
-    with c1:
-        if st.button("🔍 Verify Chain Integrity", use_container_width=True):
-            ok, bad_idx = verify_audit_chain()
-            if ok:
-                st.success("✅ Audit chain verified — no tampering detected.")
-            else:
-                st.error(f"⚠️ Integrity check failed at entry #{bad_idx}. Log may have been altered.")
+    st.markdown('<p class="app-title">🔒 Security & Audit Log</p>', unsafe_allow_html=True)
+    st.markdown('<p class="app-sub">Tamper-evident audit chain verification and operational trail.</p>', unsafe_allow_html=True)
+    
+    is_valid, error_index = verify_audit_chain()
+    if is_valid:
+        st.success("✅ Audit log integrity intact. All hash signatures are valid.")
+    else:
+        st.error(f"⚠️ Audit log integrity compromised at record index {error_index}!")
 
     if st.session_state.audit_logs:
-        audit_df = pd.DataFrame(st.session_state.audit_logs).drop(columns=["_ts_raw"])
-        st.dataframe(audit_df, use_container_width=True, hide_index=True)
-
-        csv_bytes = audit_df.to_csv(index=False).encode("utf-8")
-        st.download_button(
-            label="📥 Export Compliance Audit CSV",
-            data=csv_bytes,
-            file_name=f"audit_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-            mime="text/csv",
-            use_container_width=True,
-        )
+        st.dataframe(pd.DataFrame(st.session_state.audit_logs).drop(columns=["_ts_raw"]), use_container_width=True, hide_index=True)
     else:
-        st.info("No audit events recorded yet.")
+        st.info("No audit logs accumulated for this session yet.")
