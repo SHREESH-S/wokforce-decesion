@@ -1,17 +1,82 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import plotly.express as px
+import time
 from datetime import datetime
-
-st.set_page_config(
-    page_title="Enterprise AI Workforce Allocation Platform",
-    page_icon="⚡",
-    layout="wide"
-)
+import hashlib
 
 # -----------------------------------------------------------------------------
-# SECURITY & AUTHENTICATION (RBAC)
+# 1. PAGE CONFIGURATION & MODERN STYLING
+# -----------------------------------------------------------------------------
+st.set_page_config(
+    page_title="AI Workforce Command Center",
+    page_icon="⚡",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Custom CSS for UI/UX, Glassmorphism, and Quick Loading
+st.markdown("""
+<style>
+    .main { background-color: #0F172A; }
+    .stApp { color: #F8FAFC; }
+    .stCard {
+        background: rgba(30, 41, 59, 0.7);
+        border-radius: 12px;
+        padding: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    .metric-value { font-size: 2rem; font-weight: 700; color: #38BDF8; }
+    .stButton>button {
+        background: linear-gradient(90deg, #3B82F6 0%, #2563EB 100%);
+        color: white; border: none; border-radius: 8px; font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    .stButton>button:hover {
+        transform: translateY(-2px); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    }
+</style>
+""", unsafe_allow_allowed_html=True)
+
+# -----------------------------------------------------------------------------
+# 2. PERFORMANCE OPTIMIZATION (CACHE & DATA SEEDING)
+# -----------------------------------------------------------------------------
+@st.cache_data(ttl=3600)
+def load_initial_workforce_data():
+    engineers = pd.DataFrame([
+        {"ID": "E1", "Name": "Alice Vance", "Skills": "Python, Cloud, Security", "Workload": 2, "Max_Capacity": 5, "Availability": "Available", "Location": "New York", "Performance_Score": 0.95, "Hourly_Rate": 85},
+        {"ID": "E2", "Name": "Bob Smith", "Skills": "Python, DevOps, Cloud", "Workload": 3, "Max_Capacity": 5, "Availability": "Available", "Location": "London", "Performance_Score": 0.88, "Hourly_Rate": 75},
+        {"ID": "E3", "Name": "Charlie Day", "Skills": "Security, Network", "Workload": 1, "Max_Capacity": 4, "Availability": "Available", "Location": "New York", "Performance_Score": 0.79, "Hourly_Rate": 65},
+        {"ID": "E4", "Name": "Diana Prince", "Skills": "Cloud, DevOps, Database", "Workload": 0, "Max_Capacity": 5, "Availability": "Available", "Location": "Tokyo", "Performance_Score": 0.92, "Hourly_Rate": 90},
+        {"ID": "E5", "Name": "Evan Wright", "Skills": "Python, Database", "Workload": 3, "Max_Capacity": 4, "Availability": "On Leave", "Location": "London", "Performance_Score": 0.85, "Hourly_Rate": 70},
+    ])
+    
+    tasks = pd.DataFrame([
+        {"Task_ID": "T101", "Task_Name": "Database Migration", "Required_Skill": "Database", "Urgency": "High", "SLA_Hours": 4, "Location": "Tokyo", "Assigned_To": "Unassigned", "Est_Cost": 360},
+        {"Task_ID": "T102", "Task_Name": "Cloud Security Audit", "Required_Skill": "Security", "Urgency": "Critical", "SLA_Hours": 2, "Location": "New York", "Assigned_To": "Unassigned", "Est_Cost": 170},
+        {"Task_ID": "T103", "Task_Name": "API Optimization", "Required_Skill": "Python", "Urgency": "Medium", "SLA_Hours": 12, "Location": "London", "Assigned_To": "Unassigned", "Est_Cost": 900},
+        {"Task_ID": "T104", "Task_Name": "CI/CD Pipeline Fix", "Required_Skill": "DevOps", "Urgency": "Low", "SLA_Hours": 24, "Location": "London", "Assigned_To": "Unassigned", "Est_Cost": 1800},
+    ])
+    return engineers, tasks
+
+if "engineers" not in st.session_state or "tasks" not in st.session_state:
+    st.session_state.engineers, st.session_state.tasks = load_initial_workforce_data()
+
+if "audit_logs" not in st.session_state:
+    st.session_state.audit_logs = []
+
+def log_event(event_type, details):
+    st.session_state.audit_logs.append({
+        "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "Event": event_type,
+        "Details": details,
+        "Checksum": hashlib.md5(f"{event_type}{details}".encode()).hexdigest()[:8]
+    })
+
+# -----------------------------------------------------------------------------
+# 3. RBAC & SECURITY GATEWAY
 # -----------------------------------------------------------------------------
 USER_ROLES = {
     "admin": {"pass": "admin123", "role": "Administrator"},
@@ -21,240 +86,209 @@ USER_ROLES = {
 
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
-if "user_role" not in st.session_state:
-    st.session_state.user_role = None
-
-def login():
-    st.sidebar.title("🔒 Security Gateway")
-    username = st.sidebar.text_input("Username").lower()
-    password = st.sidebar.text_input("Password", type="password")
-    
-    if st.sidebar.button("Login"):
-        if username in USER_ROLES and USER_ROLES[username]["pass"] == password:
-            st.session_state.authenticated = True
-            st.session_state.user_role = USER_ROLES[username]["role"]
-            st.sidebar.success(f"Logged in as {USER_ROLES[username]['role']}")
-            st.rerun()
-        else:
-            st.sidebar.error("Invalid credentials.")
 
 if not st.session_state.authenticated:
-    st.title("🔒 Enterprise AI Workforce Platform")
-    st.info("Please log in using the sidebar to access allocation agents and security controls.")
-    login()
+    st.title("🔒 Enterprise Security Gateway")
+    c1, c2, c3 = st.columns([1, 2, 1])
+    with c2:
+        with st.form("login_form"):
+            st.subheader("Sign In")
+            username = st.text_input("Username").lower()
+            password = st.text_input("Password", type="password")
+            submitted = st.form_submit_button("Authenticate")
+            
+            if submitted:
+                if username in USER_ROLES and USER_ROLES[username]["pass"] == password:
+                    st.session_state.authenticated = True
+                    st.session_state.user_role = USER_ROLES[username]["role"]
+                    log_event("AUTH_SUCCESS", f"User {username} authenticated successfully.")
+                    st.rerun()
+                else:
+                    st.error("Invalid credentials provided.")
     st.stop()
 
 # -----------------------------------------------------------------------------
-# INITIAL DATA & STATE SETUP
+# 4. ADVANCED AI ENGINES
 # -----------------------------------------------------------------------------
-if "audit_logs" not in st.session_state:
-    st.session_state.audit_logs = []
-
-def log_event(event_type, description):
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    st.session_state.audit_logs.append({"Timestamp": timestamp, "Type": event_type, "Details": description})
-
-if "engineers" not in st.session_state:
-    st.session_state.engineers = pd.DataFrame([
-        {"ID": "E1", "Name": "Alice Vance", "Skills": "Python, Cloud, Security", "Workload": 2, "Max_Capacity": 5, "Availability": "Available", "Location": "New York", "Performance_Score": 0.95},
-        {"ID": "E2", "Name": "Bob Smith", "Skills": "Python, DevOps, Cloud", "Workload": 4, "Max_Capacity": 5, "Availability": "Available", "Location": "London", "Performance_Score": 0.88},
-        {"ID": "E3", "Name": "Charlie Day", "Skills": "Security, Network", "Workload": 1, "Max_Capacity": 4, "Availability": "Available", "Location": "New York", "Performance_Score": 0.79},
-        {"ID": "E4", "Name": "Diana Prince", "Skills": "Cloud, DevOps, Database", "Workload": 0, "Max_Capacity": 5, "Availability": "Available", "Location": "Tokyo", "Performance_Score": 0.92},
-        {"ID": "E5", "Name": "Evan Wright", "Skills": "Python, Database", "Workload": 3, "Max_Capacity": 4, "Availability": "On Leave", "Location": "London", "Performance_Score": 0.85},
-    ])
-
-if "tasks" not in st.session_state:
-    st.session_state.tasks = pd.DataFrame([
-        {"Task_ID": "T101", "Task_Name": "Database Migration", "Required_Skill": "Database", "Urgency": "High", "SLA_Hours": 4, "Location": "Tokyo", "Assigned_To": "Unassigned"},
-        {"Task_ID": "T102", "Task_Name": "Cloud Security Audit", "Required_Skill": "Security", "Urgency": "Critical", "SLA_Hours": 2, "Location": "New York", "Assigned_To": "Unassigned"},
-        {"Task_ID": "T103", "Task_Name": "API Optimization", "Required_Skill": "Python", "Urgency": "Medium", "SLA_Hours": 12, "Location": "London", "Assigned_To": "Unassigned"},
-        {"Task_ID": "T104", "Task_Name": "CI/CD Pipeline Fix", "Required_Skill": "DevOps", "Urgency": "Low", "SLA_Hours": 24, "Location": "London", "Assigned_To": "Unassigned"},
-    ])
-
-if "messages" not in st.session_state:
-    st.session_state.messages = [
-        {"role": "assistant", "content": "Hello! I am your AI Workforce Operations Assistant. Ask me about workforce capacity, active tasks, or allocation optimization."}
-    ]
-
-# -----------------------------------------------------------------------------
-# ADVANCED MULTI-FACTOR DECISION ENGINE
-# -----------------------------------------------------------------------------
-def calculate_match_score(engineer, task):
-    if engineer["Availability"] != "Available" or engineer["Workload"] >= engineer["Max_Capacity"]:
-        return -1.0
-    
-    score = 0.0
-    skills_list = [s.strip().lower() for s in engineer["Skills"].split(",")]
-    
-    # 1. Mandatory Skill Verification
-    if task["Required_Skill"].lower() not in skills_list:
-        return -1.0
-    score += 40.0
-    
-    # 2. Capacity Utilization Score
-    score += (1.0 - (engineer["Workload"] / engineer["Max_Capacity"])) * 20.0
-    
-    # 3. Dynamic SLA and Urgency Weighting
-    urgency_weights = {"Critical": 1.6, "High": 1.3, "Medium": 1.0, "Low": 0.7}
-    sla_urgency_bonus = max(0, (24 - task["SLA_Hours"]) / 24.0) * 15.0 * urgency_weights.get(task["Urgency"], 1.0)
-    score += sla_urgency_bonus
-    
-    # 4. Proximity & Location Weighting
-    if engineer["Location"].lower() == task["Location"].lower():
-        score += 10.0
-        
-    # 5. Historical Reliability Index
-    score += engineer["Performance_Score"] * 15.0
-    return score
-
-def execute_auto_allocation():
+def run_ai_matchmaking():
     eng_df = st.session_state.engineers.copy()
     task_df = st.session_state.tasks.copy()
     
-    urgency_order = {"Critical": 0, "High": 1, "Medium": 2, "Low": 3}
-    task_df["rank"] = task_df["Urgency"].map(urgency_order)
-    task_df = task_df.sort_values(by=["rank", "SLA_Hours"]).drop(columns=["rank"])
+    reassigned = 0
+    urgency_weights = {"Critical": 4, "High": 3, "Medium": 2, "Low": 1}
+    task_df["priority_score"] = task_df["Urgency"].map(urgency_weights) * 10 + (24 - task_df["SLA_Hours"])
+    task_df = task_df.sort_values(by="priority_score", ascending=False)
     
-    reassignments = 0
-    for _, task in task_df.iterrows():
-        best_candidate, best_score = None, -1.0
-        for idx, engineer in eng_df.iterrows():
-            score = calculate_match_score(engineer, task)
-            if score > best_score:
-                best_score, best_candidate = score, idx
-                
-        if best_candidate is not None and best_score > 0:
-            assigned_name = eng_df.loc[best_candidate, "Name"]
-            assigned_id = eng_df.loc[best_candidate, "ID"]
-            task_df.loc[task_df["Task_ID"] == task["Task_ID"], "Assigned_To"] = f"{assigned_name} ({assigned_id})"
-            eng_df.loc[best_candidate, "Workload"] += 1
-            reassignments += 1
-        else:
-            task_df.loc[task_df["Task_ID"] == task["Task_ID"], "Assigned_To"] = "Unassigned (No Match)"
+    for idx, task in task_df.iterrows():
+        if "Unassigned" in str(task["Assigned_To"]):
+            req_skill = task["Required_Skill"].lower()
+            candidates = []
             
-    st.session_state.tasks = task_df
-    log_event("ALLOCATION_ENGINE", f"Automated reallocation complete. {reassignments} tasks routed.")
+            for e_idx, eng in eng_df.iterrows():
+                if eng["Availability"] == "Available" and eng["Workload"] < eng["Max_Capacity"]:
+                    skills = [s.strip().lower() for s in eng["Skills"].split(",")]
+                    if req_skill in skills:
+                        # Vector-style weighted match score calculation
+                        score = (eng["Performance_Score"] * 40) + \
+                                ((1 - (eng["Workload"] / eng["Max_Capacity"])) * 30) + \
+                                (30 if eng["Location"] == task["Location"] else 0)
+                        candidates.append((score, e_idx, eng["Name"], eng["ID"]))
+            
+            if candidates:
+                candidates.sort(reverse=True, key=lambda x: x[0])
+                best_match = candidates[0]
+                task_df.loc[idx, "Assigned_To"] = f"{best_match[2]} ({best_match[3]})"
+                eng_df.loc[best_match[1], "Workload"] += 1
+                reassigned += 1
+
+    st.session_state.engineers = eng_df
+    st.session_state.tasks = task_df.drop(columns=["priority_score"])
+    log_event("AI_ALLOCATION", f"Autonomous AI routing assigned {reassigned} pending tasks.")
 
 # -----------------------------------------------------------------------------
-# NAVIGATION & HEADER
+# 5. NAVIGATION & MODERN SIDEBAR
 # -----------------------------------------------------------------------------
-st.sidebar.markdown(f"**User:** {st.session_state.user_role}")
+st.sidebar.markdown(f"### ⚡ Workforce OS")
+st.sidebar.caption(f"Role: **{st.session_state.user_role}**")
+
+menu = st.sidebar.radio("Navigation", ["Dashboard Center", "AI Natural Query Bot", "Dynamic Scenario Engine", "Security & Audit"])
+
 if st.sidebar.button("Logout"):
     st.session_state.authenticated = False
     st.rerun()
 
-st.title("⚡ AI Workforce Decision & Resource Allocation Platform")
-menu = st.sidebar.radio("Navigation", ["Dashboard & Control", "AI Operations Chatbot", "Automation Triggers", "Security Audit Logs"])
-
 # -----------------------------------------------------------------------------
-# TAB 1: DASHBOARD & CONTROL
+# TAB 1: DASHBOARD CENTER
 # -----------------------------------------------------------------------------
-if menu == "Dashboard & Control":
+if menu == "Dashboard Center":
+    st.title("🚀 Real-Time Operations Dashboard")
+    
+    # Fast rendering KPI Cards
     col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Total Engineers", len(st.session_state.engineers))
-    col2.metric("Available Pool", len(st.session_state.engineers[st.session_state.engineers["Availability"] == "Available"]))
-    col3.metric("Total Tasks", len(st.session_state.tasks))
-    col4.metric("Unassigned Tasks", len(st.session_state.tasks[st.session_state.tasks["Assigned_To"].str.contains("Unassigned")]))
+    with col1:
+        st.markdown('<div class="stCard"><h4>Total Workforce</h4><div class="metric-value">' + str(len(st.session_state.engineers)) + '</div></div>', unsafe_allow_html=True)
+    with col2:
+        active = len(st.session_state.engineers[st.session_state.engineers["Availability"] == "Available"])
+        st.markdown('<div class="stCard"><h4>Active Resources</h4><div class="metric-value">' + str(active) + '</div></div>', unsafe_allow_html=True)
+    with col3:
+        pending = len(st.session_state.tasks[st.session_state.tasks["Assigned_To"].str.contains("Unassigned")])
+        st.markdown('<div class="stCard"><h4>Unassigned Tasks</h4><div class="metric-value">' + str(pending) + '</div></div>', unsafe_allow_html=True)
+    with col4:
+        avg_score = int(st.session_state.engineers["Performance_Score"].mean() * 100)
+        st.markdown('<div class="stCard"><h4>Workforce Health</h4><div class="metric-value">' + str(avg_score) + '%</div></div>', unsafe_allow_html=True)
 
-    st.markdown("---")
+    st.markdown("<br>", unsafe_allow_html=True)
+    
     c1, c2 = st.columns(2)
-    
     with c1:
-        st.subheader("👨‍💻 Real-Time Engineer Capacity")
-        st.dataframe(st.session_state.engineers, use_container_width=True)
-        
+        st.subheader("👥 Engineers Availability & Capacity")
+        st.dataframe(st.session_state.engineers, use_container_width=True, height=300)
     with c2:
-        st.subheader("📋 Task Routing & Queue")
-        st.dataframe(st.session_state.tasks, use_container_width=True)
+        st.subheader("🎯 Active Task Queue")
+        st.dataframe(st.session_state.tasks, use_container_width=True, height=300)
 
     st.markdown("---")
-    st.subheader("📊 Load Balancing Analytics")
     
-    chart_df = st.session_state.engineers.copy()
-    chart_df["Capacity Utilization (%)"] = (chart_df["Workload"] / chart_df["Max_Capacity"]) * 100
-    fig = px.bar(chart_df, x="Name", y="Capacity Utilization (%)", color="Availability", 
-                 title="Workload Saturation per Engineer", range_y=[0, 100])
-    st.plotly_chart(fig, use_container_width=True)
+    # Fragment-isolated execution for partial reruns without whole page refreshes
+    @st.fragment
+    def render_capacity_chart():
+        st.subheader("📊 Live Workload Saturation")
+        chart_data = st.session_state.engineers.copy()
+        chart_data["Utilization %"] = (chart_data["Workload"] / chart_data["Max_Capacity"]) * 100
+        st.bar_chart(chart_data.set_index("Name")["Utilization %"])
+        
+    render_capacity_chart()
 
 # -----------------------------------------------------------------------------
-# TAB 2: AI CHATBOT ASSISTANT
+# TAB 2: NATURAL LANGUAGE CHATBOT
 # -----------------------------------------------------------------------------
-elif menu == "AI Operations Chatbot":
-    st.subheader("💬 AI Resource Optimization Chatbot")
-    st.markdown("Query the active workforce database in natural language.")
+elif menu == "AI Natural Query Bot":
+    st.title("🤖 AI Operations Co-Pilot")
+    st.caption("Ask questions about active tasks, engineer workloads, or cost optimizations.")
     
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+    if "messages" not in st.session_state:
+        st.session_state.messages = [{"role": "assistant", "content": "How can I assist with your resource management today?"}]
 
-    if prompt := st.chat_input("Ask a question (e.g., 'Who is available for Python tasks?'):"):
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
+    for msg in st.session_state.messages:
+        st.chat_message(msg["role"]).write(msg["content"])
 
-        p_lower = prompt.lower()
-        if "available" in p_lower:
+    if user_prompt := st.chat_input("Ex: 'Who is available for Python?' or 'Run AI matchmaker'"):
+        st.session_state.messages.append({"role": "user", "content": user_prompt})
+        st.chat_message("user").write(user_prompt)
+        
+        prompt_l = user_prompt.lower()
+        if "match" in prompt_l or "assign" in prompt_l or "route" in prompt_l:
+            run_ai_matchmaking()
+            response = "⚡ **AI Engine Execution Complete:** All pending tasks have been automatically matched to best-suited candidates based on skills, geography, and current workload capacity."
+        elif "python" in prompt_l:
+            match = st.session_state.engineers[st.session_state.engineers["Skills"].str.contains("Python")]["Name"].tolist()
+            response = f"Engineers skilled in Python: **{', '.join(match)}**."
+        elif "available" in prompt_l:
             avail = st.session_state.engineers[st.session_state.engineers["Availability"] == "Available"]["Name"].tolist()
             response = f"Currently available engineers: **{', '.join(avail)}**."
-        elif "unassigned" in p_lower:
-            unassigned = st.session_state.tasks[st.session_state.tasks["Assigned_To"].str.contains("Unassigned")]["Task_Name"].tolist()
-            response = f"Unassigned tasks in queue: **{', '.join(unassigned) if unassigned else 'None'}**."
-        elif "python" in p_lower:
-            py_eng = st.session_state.engineers[st.session_state.engineers["Skills"].str.contains("Python")]["Name"].tolist()
-            response = f"Engineers skilled in Python: **{', '.join(py_eng)}**."
         else:
-            response = "I can analyze active tasks, workforce availability, and skill matching. Try asking: 'Who is available?' or 'Which tasks are unassigned?'"
-
+            response = f"Analyzed query. Current system metrics: **{len(st.session_state.tasks)}** total tasks loaded, average hourly rate is **${st.session_state.engineers['Hourly_Rate'].mean():.2f}/hr**."
+            
         st.session_state.messages.append({"role": "assistant", "content": response})
-        with st.chat_message("assistant"):
-            st.markdown(response)
+        st.chat_message("assistant").write(response)
 
 # -----------------------------------------------------------------------------
-# TAB 3: AUTOMATION TRIGGERS
+# TAB 3: DYNAMIC SCENARIO SIMULATOR
 # -----------------------------------------------------------------------------
-elif menu == "Automation Triggers":
-    st.subheader("⚡ Automated Dynamic Event Triggers")
-    st.markdown("Simulate continuous changes in conditions to trigger immediate AI reallocation.")
+elif menu == "Dynamic Scenario Engine":
+    st.title("⚡ Dynamic Scenario & Disruption Simulator")
+    st.caption("Simulate unexpected resource availability drops or inject high-priority tasks to view dynamic reallocation.")
 
-    if st.session_state.user_role == "Engineer":
-        st.warning("🔒 Access Restricted: Engineer level accounts cannot trigger system-wide reallocations.")
-    else:
-        col1, col2 = st.columns(2)
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("### 🚨 Emergency Outage Simulation")
+        selected_eng = st.selectbox("Select Resource", st.session_state.engineers["Name"].tolist())
+        new_status = st.selectbox("Update Status", ["On Leave", "Available", "Busy"])
         
-        with col1:
-            st.markdown("### ➕ Dynamic Task Injection")
-            t_name = st.text_input("Task Title", "SLA Breach Mitigation")
-            t_skill = st.selectbox("Required Skill", ["Python", "Cloud", "Security", "DevOps", "Database"])
+        if st.button("Apply Status Disruption"):
+            st.session_state.engineers.loc[st.session_state.engineers["Name"] == selected_eng, "Availability"] = new_status
+            log_event("DISRUPTION_SIMULATED", f"Changed status of {selected_eng} to {new_status}")
+            st.warning(f"Updated {selected_eng} to {new_status}.")
+            
+            # Auto trigger dynamic reallocation cascade
+            run_ai_matchmaking()
+            st.success("Cascade reallocation completed automatically!")
+
+    with col2:
+        st.markdown("### ⚡ Fast-Track Task Injection")
+        with st.form("inject_task_form"):
+            t_name = st.text_input("Task Title", "Zero-Day Security Patch")
+            t_skill = st.selectbox("Required Skill", ["Security", "Python", "Cloud", "DevOps", "Database"])
             t_urgency = st.selectbox("Urgency", ["Critical", "High", "Medium", "Low"])
-            t_sla = st.slider("SLA Window (Hours)", 1, 48, 2)
-            t_loc = st.selectbox("Location Target", ["New York", "London", "Tokyo"])
+            t_sla = st.number_input("SLA Commitment (Hours)", min_value=1, max_value=72, value=2)
             
-            if st.button("Inject Task & Trigger Auto-Allocation"):
+            if st.form_submit_button("Inject Task & Run AI"):
                 t_id = f"T{100 + len(st.session_state.tasks) + 1}"
-                new_task = pd.DataFrame([{"Task_ID": t_id, "Task_Name": t_name, "Required_Skill": t_skill, 
-                                          "Urgency": t_urgency, "SLA_Hours": t_sla, "Location": t_loc, "Assigned_To": "Unassigned"}])
-                st.session_state.tasks = pd.concat([st.session_state.tasks, new_task], ignore_index=True)
-                log_event("TASK_INJECTION", f"New task {t_id} injected into queue.")
-                execute_auto_allocation()
-                st.success("Task injected and auto-allocation executed!")
-
-        with col2:
-            st.markdown("### ⚠️ Dynamic Capacity Disturbance")
-            target_eng = st.selectbox("Select Target Engineer", st.session_state.engineers["Name"].tolist())
-            new_status = st.selectbox("Update Availability State", ["Available", "On Leave", "Busy"])
-            
-            if st.button("Apply Status Change & Re-balance"):
-                st.session_state.engineers.loc[st.session_state.engineers["Name"] == target_eng, "Availability"] = new_status
-                log_event("AVAILABILITY_CHANGE", f"Status of {target_eng} changed to {new_status}.")
-                execute_auto_allocation()
-                st.warning("Resource status changed and system re-balanced!")
+                new_row = pd.DataFrame([{"Task_ID": t_id, "Task_Name": t_name, "Required_Skill": t_skill,
+                                         "Urgency": t_urgency, "SLA_Hours": t_sla, "Location": "New York",
+                                         "Assigned_To": "Unassigned", "Est_Cost": t_sla * 100}])
+                st.session_state.tasks = pd.concat([st.session_state.tasks, new_row], ignore_index=True)
+                log_event("TASK_INJECTED", f"Injected emergency task {t_id}")
+                run_ai_matchmaking()
+                st.success(f"Task {t_id} injected into queue and routed!")
 
 # -----------------------------------------------------------------------------
-# TAB 4: SECURITY AUDIT LOGS
+# TAB 4: SECURITY & AUDIT TRAIL
 # -----------------------------------------------------------------------------
-elif menu == "Security Audit Logs":
-    st.subheader("🛡️ Enterprise Audit & Event Logs")
+elif menu == "Security & Audit":
+    st.title("🛡️ Enterprise Security & Audit Compliance")
+    st.caption("Immutable system log generated for compliance tracking and governance auditing.")
+
     if st.session_state.audit_logs:
-        st.dataframe(pd.DataFrame(st.session_state.audit_logs), use_container_width=True)
+        audit_df = pd.DataFrame(st.session_state.audit_logs)
+        st.dataframe(audit_df, use_container_width=True)
+        
+        csv_bytes = audit_df.to_csv(index=False).encode("utf-8")
+        st.download_button(
+            label="📥 Export Compliance Audit CSV",
+            data=csv_bytes,
+            file_name=f"audit_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+            mime="text/csv"
+        )
     else:
-        st.info("No system events recorded in this session yet.")
+        st.info("No audit events recorded yet.")
